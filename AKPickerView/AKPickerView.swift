@@ -466,7 +466,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	:param: animated        True if the scrolling should be animated, false if it should be immediate.
 	:param: notifySelection True if the delegate method should be called, false if not.
 	*/
-	private func selectItem(item: Int, animated: Bool, notifySelection: Bool) {
+	public func selectItem(item: Int, animated: Bool, notifySelection: Bool) {
 		self.collectionView.selectItemAtIndexPath(
 			NSIndexPath(forItem: item, inSection: 0),
 			animated: animated,
