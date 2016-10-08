@@ -11,11 +11,9 @@ import UIKit
 /**
 Styles of AKPickerView.
 
-- Wheel: Style with 3D appearance like UIPickerView.
 - Flat:  Flat style.
 */
 public enum AKPickerViewStyle {
-	case Wheel
 	case Flat
 }
 
@@ -27,7 +25,6 @@ Protocols to specify the number and type of contents.
 @objc public protocol AKPickerViewDataSource {
 	func numberOfItemsInPickerView(pickerView: AKPickerView) -> Int
 	optional func pickerView(pickerView: AKPickerView, titleForItem item: Int) -> String
-	optional func pickerView(pickerView: AKPickerView, imageForItem item: Int) -> UIImage
 }
 
 // MARK: AKPickerViewDelegate
@@ -56,7 +53,6 @@ Private. A subclass of UICollectionViewCell used in AKPickerView's collection vi
 */
 private class AKCollectionViewCell: UICollectionViewCell {
 	var label: UILabel!
-	var imageView: UIImageView!
 	var font = UIFont.systemFontOfSize(UIFont.systemFontSize())
 	var highlightedFont = UIFont.systemFontOfSize(UIFont.systemFontSize())
 	var _selected: Bool = false {
@@ -84,12 +80,6 @@ private class AKCollectionViewCell: UICollectionViewCell {
 		self.label.font = self.font
 		self.label.autoresizingMask = [.FlexibleTopMargin, .FlexibleLeftMargin, .FlexibleBottomMargin, .FlexibleRightMargin]
 		self.contentView.addSubview(self.label)
-
-		self.imageView = UIImageView(frame: self.contentView.bounds)
-		self.imageView.backgroundColor = UIColor.clearColor()
-		self.imageView.contentMode = .Center
-		self.imageView.autoresizingMask = [.FlexibleWidth, .FlexibleHeight]
-		self.contentView.addSubview(self.imageView)
 	}
 
 	init() {
@@ -150,16 +140,6 @@ private class AKCollectionViewLayout: UICollectionViewFlowLayout {
             switch self.delegate.pickerViewStyleForCollectionViewLayout(self) {
             case .Flat:
                 return attributes
-            case .Wheel:
-                let distance = CGRectGetMidX(attributes.frame) - self.midX;
-                let currentAngle = self.maxAngle * distance / self.width / CGFloat(M_PI_2);
-                var transform = CATransform3DIdentity;
-                transform = CATransform3DTranslate(transform, -distance, 0, -self.width);
-                transform = CATransform3DRotate(transform, currentAngle, 0, 1, 0);
-                transform = CATransform3DTranslate(transform, 0, 0, self.width);
-                attributes.transform3D = transform;
-                attributes.alpha = fabs(currentAngle) < self.maxAngle ? 1.0 : 0.0;
-                return attributes;
             }
         }
         
@@ -170,15 +150,6 @@ private class AKCollectionViewLayout: UICollectionViewFlowLayout {
 		switch self.delegate.pickerViewStyleForCollectionViewLayout(self) {
 		case .Flat:
 			return super.layoutAttributesForElementsInRect(rect)
-		case .Wheel:
-			var attributes = [AnyObject]()
-			if self.collectionView!.numberOfSections() > 0 {
-				for i in 0 ..< self.collectionView!.numberOfItemsInSection(0) {
-					let indexPath = NSIndexPath(forItem: i, inSection: 0)
-					attributes.append(self.layoutAttributesForItemAtIndexPath(indexPath)!)
-				}
-			}
-			return attributes
 		}
 	}
 
@@ -253,36 +224,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	@IBInspectable public var interitemSpacing: CGFloat = 0.0
 
 	/// Readwrite. The style of the picker view. See AKPickerViewStyle.
-	public var pickerViewStyle = AKPickerViewStyle.Wheel
-
-	/// Readwrite. A float value which determines the perspective representation which used when using AKPickerViewStyle.Wheel style.
-	@IBInspectable public var viewDepth: CGFloat = 1000.0 {
-		didSet {
-			self.collectionView.layer.sublayerTransform = self.viewDepth > 0.0 ? {
-				var transform = CATransform3DIdentity;
-				transform.m34 = -1.0 / self.viewDepth;
-				return transform;
-				}() : CATransform3DIdentity;
-		}
-	}
-	/// Readwrite. A boolean value indicates whether the mask is disabled.
-	@IBInspectable public var maskDisabled: Bool! = nil {
-		didSet {
-			self.collectionView.layer.mask = self.maskDisabled == true ? nil : {
-				let maskLayer = CAGradientLayer()
-				maskLayer.frame = self.collectionView.bounds
-				maskLayer.colors = [
-					UIColor.clearColor().CGColor,
-					UIColor.blackColor().CGColor,
-					UIColor.blackColor().CGColor,
-					UIColor.clearColor().CGColor]
-				maskLayer.locations = [0.0, 0.33, 0.66, 1.0]
-				maskLayer.startPoint = CGPointMake(0.0, 0.0)
-				maskLayer.endPoint = CGPointMake(1.0, 0.0)
-				return maskLayer
-				}()
-		}
-	}
+	public var pickerViewStyle = AKPickerViewStyle.Flat
 
 	// MARK: Readonly Properties
 	/// Readonly. Index of currently selected item.
@@ -326,8 +268,6 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 		self.intercepter = AKPickerViewDelegateIntercepter(pickerView: self, delegate: self.delegate)
 		self.collectionView.delegate = self.intercepter
-
-		self.maskDisabled = self.maskDisabled == nil ? false : self.maskDisabled
 	}
 
 	public init() {
@@ -440,12 +380,6 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 					inSection: 0),
 				atScrollPosition: .CenteredHorizontally,
 				animated: animated)
-		case .Wheel:
-			self.collectionView.setContentOffset(
-				CGPoint(
-					x: self.offsetForItem(item),
-					y: self.collectionView.contentOffset.y),
-				animated: animated)
 		}
 	}
 
@@ -489,20 +423,6 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 			if let indexPath = self.collectionView.indexPathForItemAtPoint(center) {
 				self.selectItem(indexPath.item, animated: true, notifySelection: true)
 			}
-		case .Wheel:
-			if let numberOfItems = self.dataSource?.numberOfItemsInPickerView(self) {
-				for i in 0 ..< numberOfItems {
-					let indexPath = NSIndexPath(forItem: i, inSection: 0)
-					let cellSize = self.collectionView(
-						self.collectionView,
-						layout: self.collectionView.collectionViewLayout,
-						sizeForItemAtIndexPath: indexPath)
-					if self.offsetForItem(i) + cellSize.width / 2 > self.collectionView.contentOffset.x {
-						self.selectItem(i, animated: true, notifySelection: true)
-						break
-					}
-				}
-			}
 		}
 	}
 
@@ -531,8 +451,6 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 					cell.label.frame = CGRectInset(cell.label.frame, -margin.width, -margin.height)
 				}
 			}
-		} else if let image = self.dataSource?.pickerView?(self, imageForItem: indexPath.item) {
-			cell.imageView.image = image
 		}
 		cell._selected = (indexPath.item == self.selectedItem)
 		return cell
@@ -546,8 +464,6 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 			if let margin = self.delegate?.pickerView?(self, marginForItem: indexPath.item) {
 				size.width += margin.width * 2
 			}
-		} else if let image = self.dataSource?.pickerView?(self, imageForItem: indexPath.item) {
-			size.width += image.size.width
 		}
 		return size
 	}
