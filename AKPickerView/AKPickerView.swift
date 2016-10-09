@@ -24,7 +24,8 @@ Protocols to specify the number and type of contents.
 */
 @objc public protocol AKPickerViewDataSource {
 	func numberOfItemsInPickerView(pickerView: AKPickerView) -> Int
-	optional func pickerView(pickerView: AKPickerView, titleForItem item: Int) -> String
+	func pickerView(pickerView: AKPickerView, titleForItem item: Int) -> String
+	func pickerView(pickerView: AKPickerView, subtitleForItem item: Int) -> String
 }
 
 // MARK: AKPickerViewDelegate
@@ -36,6 +37,7 @@ and customize the appearance of labels.
 	optional func pickerView(pickerView: AKPickerView, didSelectItem item: Int)
 	optional func pickerView(pickerView: AKPickerView, marginForItem item: Int) -> CGSize
 	optional func pickerView(pickerView: AKPickerView, configureLabel label: UILabel, forItem item: Int)
+	optional func pickerView(pickerView: AKPickerView, configureSubLabel label: UILabel, forItem item: Int)
 }
 
 // MARK: - Private Classes and Protocols
@@ -53,33 +55,49 @@ Private. A subclass of UICollectionViewCell used in AKPickerView's collection vi
 */
 private class AKCollectionViewCell: UICollectionViewCell {
 	var label: UILabel!
-	var font = UIFont.systemFontOfSize(UIFont.systemFontSize())
-	var highlightedFont = UIFont.systemFontOfSize(UIFont.systemFontSize())
+	var subLabel: UILabel!
+	let labelFont = UIFont.systemFontOfSize(13)
+	let subLabelFont = UIFont.systemFontOfSize(20)
+	let highlightedSubLabelFont = UIFont.systemFontOfSize(30)
 	var _selected: Bool = false {
 		didSet(selected) {
 			let animation = CATransition()
 			animation.type = kCATransitionFade
 			animation.duration = 0.15
-			self.label.layer.addAnimation(animation, forKey: "")
-			self.label.font = self.selected ? self.highlightedFont : self.font
+			self.subLabel.layer.addAnimation(animation, forKey: "")
+			self.subLabel.font = self.selected ? self.highlightedSubLabelFont : self.subLabelFont
 		}
 	}
 
 	func initialize() {
+		let labelHeight: CGFloat = self.labelFont.lineHeight
+
 		self.layer.doubleSided = false
 		self.layer.shouldRasterize = true
 		self.layer.rasterizationScale = UIScreen.mainScreen().scale
 
 		self.label = UILabel(frame: self.contentView.bounds)
+		self.label.frame.size.height = labelHeight
 		self.label.backgroundColor = UIColor.clearColor()
 		self.label.textAlignment = .Center
 		self.label.textColor = UIColor.grayColor()
 		self.label.numberOfLines = 1
 		self.label.lineBreakMode = .ByTruncatingTail
 		self.label.highlightedTextColor = UIColor.blackColor()
-		self.label.font = self.font
-		self.label.autoresizingMask = [.FlexibleTopMargin, .FlexibleLeftMargin, .FlexibleBottomMargin, .FlexibleRightMargin]
+		self.label.font = self.labelFont
 		self.contentView.addSubview(self.label)
+
+		self.subLabel = UILabel(frame: self.contentView.bounds)
+		self.subLabel.frame.origin.y = labelHeight
+		self.subLabel.frame.size.height -= labelHeight
+		self.subLabel.backgroundColor = UIColor.clearColor()
+		self.subLabel.textAlignment = .Center
+		self.subLabel.textColor = UIColor.grayColor()
+		self.subLabel.numberOfLines = 1
+		self.subLabel.lineBreakMode = .ByTruncatingTail
+		self.subLabel.highlightedTextColor = UIColor.blackColor()
+		self.subLabel.font = self.subLabelFont
+		self.contentView.addSubview(self.subLabel)
 	}
 
 	init() {
@@ -209,10 +227,13 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 		}
 	}
 	/// Readwrite. A font which used in NOT selected cells.
-	public lazy var font = UIFont.systemFontOfSize(20)
+	private let labelFont = UIFont.systemFontOfSize(13)
+
+	/// Readwrite. A font which used in NOT selected cells.
+	private let subLabelFont = UIFont.systemFontOfSize(20)
 
 	/// Readwrite. A font which used in selected cells.
-	public lazy var highlightedFont = UIFont.boldSystemFontOfSize(20)
+	private let highlightedSubLabelFont = UIFont.systemFontOfSize(30)
 
 	/// Readwrite. A color of the text on NOT selected cells.
 	@IBInspectable public lazy var textColor: UIColor = UIColor.darkGrayColor()
@@ -301,24 +322,10 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	}
 
 	public override func intrinsicContentSize() -> CGSize {
-		return CGSizeMake(UIViewNoIntrinsicMetric, max(self.font.lineHeight, self.highlightedFont.lineHeight))
+		return CGSizeMake(UIViewNoIntrinsicMetric, self.labelFont.lineHeight + max(self.subLabelFont.lineHeight, self.highlightedSubLabelFont.lineHeight))
 	}
 
 	// MARK: Calculation Functions
-
-	/**
-	Private. Used to calculate bounding size of given string with picker view's font and highlightedFont
-
-	:param: string A NSString to calculate size
-	:returns: A CGSize which contains given string just.
-	*/
-	private func sizeForString(string: NSString) -> CGSize {
-		let size = string.sizeWithAttributes([NSFontAttributeName: self.font])
-		let highlightedSize = string.sizeWithAttributes([NSFontAttributeName: self.highlightedFont])
-		return CGSize(
-			width: ceil(max(size.width, highlightedSize.width)),
-			height: ceil(max(size.height, highlightedSize.height)))
-	}
 
 	/**
 	Private. Used to calculate the x-coordinate of the content offset of specified item.
@@ -437,18 +444,27 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	public func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
 		let cell = collectionView.dequeueReusableCellWithReuseIdentifier(NSStringFromClass(AKCollectionViewCell.self), forIndexPath: indexPath) as! AKCollectionViewCell
-		if let title = self.dataSource?.pickerView?(self, titleForItem: indexPath.item) {
+		if let title = self.dataSource?.pickerView(self, titleForItem: indexPath.item) {
 			cell.label.text = title
 			cell.label.textColor = self.textColor
 			cell.label.highlightedTextColor = self.highlightedTextColor
-			cell.label.font = self.font
-			cell.font = self.font
-			cell.highlightedFont = self.highlightedFont
-			cell.label.bounds = CGRect(origin: CGPointZero, size: self.sizeForString(title))
+			cell.label.font = self.labelFont
 			if let delegate = self.delegate {
 				delegate.pickerView?(self, configureLabel: cell.label, forItem: indexPath.item)
 				if let margin = delegate.pickerView?(self, marginForItem: indexPath.item) {
 					cell.label.frame = CGRectInset(cell.label.frame, -margin.width, -margin.height)
+				}
+			}
+		}
+		if let subtitle = self.dataSource?.pickerView(self, subtitleForItem: indexPath.item) {
+			cell.subLabel.text = subtitle
+			cell.subLabel.textColor = self.textColor
+			cell.subLabel.highlightedTextColor = self.highlightedTextColor
+			cell.subLabel.font =  self.subLabelFont
+			if let delegate = self.delegate {
+				delegate.pickerView?(self, configureSubLabel: cell.subLabel, forItem: indexPath.item)
+				if let margin = delegate.pickerView?(self, marginForItem: indexPath.item) {
+					cell.subLabel.frame = CGRectInset(cell.subLabel.frame, -margin.width, -margin.height)
 				}
 			}
 		}
@@ -458,13 +474,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	// MARK: UICollectionViewDelegateFlowLayout
 	public func collectionView(collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAtIndexPath indexPath: NSIndexPath) -> CGSize {
-		var size = CGSizeMake(self.interitemSpacing, collectionView.bounds.size.height)
-		if let title = self.dataSource?.pickerView?(self, titleForItem: indexPath.item) {
-			size.width += self.sizeForString(title).width
-			if let margin = self.delegate?.pickerView?(self, marginForItem: indexPath.item) {
-				size.width += margin.width * 2
-			}
-		}
+		let size = CGSizeMake(85, collectionView.bounds.size.height)
 		return size
 	}
 

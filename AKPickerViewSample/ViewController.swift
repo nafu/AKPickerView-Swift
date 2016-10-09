@@ -13,14 +13,13 @@ class ViewController: UIViewController, AKPickerViewDataSource, AKPickerViewDele
 	@IBOutlet var pickerView: AKPickerView!
 
 	let titles = ["Tokyo", "Kanagawa", "Osaka", "Aichi", "Saitama", "Chiba", "Hyogo", "Hokkaido", "Fukuoka", "Shizuoka"]
+	let subtitles = ["10/03", "10/04", "10/05", "10/06", "10/07", "10/08", "10/09", "10/10", "10/11", "10/12"]
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		self.pickerView.delegate = self
 		self.pickerView.dataSource = self
 
-		self.pickerView.font = UIFont(name: "HelveticaNeue-Light", size: 20)!
-		self.pickerView.highlightedFont = UIFont(name: "HelveticaNeue", size: 20)!
 		self.pickerView.reloadData()
 	}
 
@@ -40,6 +39,10 @@ class ViewController: UIViewController, AKPickerViewDataSource, AKPickerViewDele
 	*/
 	func pickerView(pickerView: AKPickerView, titleForItem item: Int) -> String {
 		return self.titles[item]
+	}
+
+	func pickerView(pickerView: AKPickerView, subtitleForItem item: Int) -> String {
+		return self.subtitles[item]
 	}
 
 	func pickerView(pickerView: AKPickerView, imageForItem item: Int) -> UIImage {
