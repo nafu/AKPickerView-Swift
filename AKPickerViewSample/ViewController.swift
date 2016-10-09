@@ -94,5 +94,5 @@ class ViewController: UIViewController, AKPickerViewDataSource, AKPickerViewDele
 	func scrollViewDidScroll(scrollView: UIScrollView) {
 		// println("\(scrollView.contentOffset.x)")
 	}
-	
+
 }

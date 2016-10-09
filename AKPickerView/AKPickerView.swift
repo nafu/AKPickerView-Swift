@@ -104,7 +104,7 @@ private class AKCollectionViewCell: UICollectionViewCell {
 	}
 
 	init() {
-		super.init(frame: CGRectZero)
+		super.init(frame: CGRect.zero)
 		self.initialize()
 	}
 
@@ -130,7 +130,7 @@ private class AKCollectionViewLayout: UICollectionViewFlowLayout {
 	var maxAngle: CGFloat!
 
 	func initialize() {
-		self.sectionInset = UIEdgeInsetsMake(0.0, 0.0, 0.0, 0.0)
+		self.sectionInset = UIEdgeInsets(top: 0.0, left: 0.0, bottom: 0.0, right: 0.0)
 		self.scrollDirection = .Horizontal
 		self.minimumLineSpacing = 0.0
 	}
@@ -147,9 +147,9 @@ private class AKCollectionViewLayout: UICollectionViewFlowLayout {
 
 	private override func prepareLayout() {
 		let visibleRect = CGRect(origin: self.collectionView!.contentOffset, size: self.collectionView!.bounds.size)
-		self.midX = CGRectGetMidX(visibleRect);
-		self.width = CGRectGetWidth(visibleRect) / 2;
-		self.maxAngle = CGFloat(M_PI_2);
+		self.midX = visibleRect.midX
+		self.width = visibleRect.width / 2
+		self.maxAngle = CGFloat(M_PI_2)
 	}
 
 	private override func shouldInvalidateLayoutForBoundsChange(newBounds: CGRect) -> Bool {
@@ -163,7 +163,7 @@ private class AKCollectionViewLayout: UICollectionViewFlowLayout {
                 return attributes
             }
         }
-        
+
         return nil
 	}
 
@@ -297,7 +297,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	}
 
 	public init() {
-		super.init(frame: CGRectZero)
+		super.init(frame: CGRect.zero)
 		self.initialize()
 	}
 
