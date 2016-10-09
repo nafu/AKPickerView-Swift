@@ -57,15 +57,17 @@ private class AKCollectionViewCell: UICollectionViewCell {
 	var label: UILabel!
 	var subLabel: UILabel!
 	let labelFont = UIFont.systemFontOfSize(13)
-	let subLabelFont = UIFont.systemFontOfSize(20)
-	let highlightedSubLabelFont = UIFont.systemFontOfSize(30)
+	let subLabelFont = UIFont.systemFontOfSize(16)
+	let highlightedSubLabelFont = UIFont.systemFontOfSize(22)
 	var _selected: Bool = false {
 		didSet(selected) {
-			let animation = CATransition()
-			animation.type = kCATransitionFade
-			animation.duration = 0.15
-			self.subLabel.layer.addAnimation(animation, forKey: "")
-			self.subLabel.font = self.selected ? self.highlightedSubLabelFont : self.subLabelFont
+			let scaleFactor: CGFloat = selected ? 1.375 : 1
+			let font = selected ? self.highlightedSubLabelFont : self.subLabelFont
+			UIView.animateWithDuration(0.05, animations: {
+				self.subLabel.transform = CGAffineTransformMakeScale(scaleFactor, scaleFactor)
+				}, completion: { finished in
+					self.subLabel.font = font
+			})
 		}
 	}
 
@@ -230,10 +232,10 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	private let labelFont = UIFont.systemFontOfSize(13)
 
 	/// Readwrite. A font which used in NOT selected cells.
-	private let subLabelFont = UIFont.systemFontOfSize(20)
+	private let subLabelFont = UIFont.systemFontOfSize(16)
 
 	/// Readwrite. A font which used in selected cells.
-	private let highlightedSubLabelFont = UIFont.systemFontOfSize(30)
+	private let highlightedSubLabelFont = UIFont.systemFontOfSize(22)
 
 	/// Readwrite. A color of the text on NOT selected cells.
 	@IBInspectable public lazy var textColor: UIColor = UIColor.darkGrayColor()
