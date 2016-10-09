@@ -59,6 +59,7 @@ private class AKCollectionViewCell: UICollectionViewCell {
 	let labelFont = UIFont.systemFontOfSize(13)
 	let subLabelFont = UIFont.systemFontOfSize(16)
 	let highlightedSubLabelFont = UIFont.systemFontOfSize(22)
+	private var isSelected = false
 	var _selected: Bool = false {
 		didSet(selected) {
 			let scaleFactor: CGFloat = selected ? 1.375 : 1
@@ -271,6 +272,8 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 		return layout
 	}
 
+	private var didSelectItem = false
+
 	// MARK: - Functions
 	// MARK: View Lifecycle
 	/**
@@ -410,11 +413,13 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	:param: notifySelection True if the delegate method should be called, false if not.
 	*/
 	public func selectItem(item: Int, animated: Bool, notifySelection: Bool) {
+		let indexPath = NSIndexPath(forItem: item, inSection: 0)
 		self.collectionView.selectItemAtIndexPath(
-			NSIndexPath(forItem: item, inSection: 0),
+			indexPath,
 			animated: animated,
 			scrollPosition: .None)
 		self.scrollToItem(item, animated: animated)
+		self.scaleSubLabel(indexPath)
 		self.selectedItem = item
 		if notifySelection {
 			self.delegate?.pickerView?(self, didSelectItem: item)
@@ -502,7 +507,8 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	// MARK: UICollectionViewDelegate
 	public func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
-		self.selectItem(indexPath.item, animated: true)
+		didSelectItem = true
+		self.selectItem(indexPath.item, animated: true, notifySelection: true)
 	}
 
 	// MARK: UIScrollViewDelegate
@@ -520,16 +526,30 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	public func scrollViewDidScroll(scrollView: UIScrollView) {
 		self.delegate?.scrollViewDidScroll?(scrollView)
-		CATransaction.begin()
-		CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
-		self.collectionView.layer.mask?.frame = self.collectionView.bounds
-		CATransaction.commit()
+
+		let center = self.convertPoint(self.collectionView.center, toView: self.collectionView)
+		if let indexPath = self.collectionView.indexPathForItemAtPoint(center) {
+			self.scaleSubLabel(indexPath)
+		}
+	}
+
+	private func scaleSubLabel(indexPath: NSIndexPath) {
+		guard let cell = self.collectionView.cellForItemAtIndexPath(indexPath) as! AKCollectionViewCell? else { return }
+		guard self.selectedItem == indexPath.item else { return }
+		cell._selected = true
+		for cell in self.collectionView.visibleCells() as! [AKCollectionViewCell] {
+			let visibleIndexPath = self.collectionView.indexPathForCell(cell)
+			if indexPath == visibleIndexPath { continue }
+			cell._selected = false
+		}
+	}
+
+	public func scrollViewDidEndScrollingAnimation(scrollView: UIScrollView) {
+		didSelectItem = true
 	}
 
 	// MARK: AKCollectionViewLayoutDelegate
 	private func pickerViewStyleForCollectionViewLayout(layout: AKCollectionViewLayout) -> AKPickerViewStyle {
 		return self.pickerViewStyle
 	}
-	
 }
-
