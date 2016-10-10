@@ -56,6 +56,8 @@ Private. A subclass of UICollectionViewCell used in AKPickerView's collection vi
 private class AKCollectionViewCell: UICollectionViewCell {
 	var label: UILabel!
 	var subLabel: UILabel!
+	var textColor = UIColor.darkGrayColor()
+	var highlightedTextColor = UIColor.blackColor()
 	let labelFont = UIFont.systemFontOfSize(13)
 	let subLabelFont = UIFont.systemFontOfSize(16)
 	let highlightedSubLabelFont = UIFont.systemFontOfSize(22)
@@ -64,8 +66,11 @@ private class AKCollectionViewCell: UICollectionViewCell {
 		didSet(selected) {
 			let scaleFactor: CGFloat = selected ? 1.375 : 1
 			let font = selected ? self.highlightedSubLabelFont : self.subLabelFont
+			let textColor = selected ? self.highlightedTextColor : self.textColor
 			UIView.animateWithDuration(0.05, animations: {
 				self.subLabel.transform = CGAffineTransformMakeScale(scaleFactor, scaleFactor)
+				self.label.textColor = textColor
+				self.subLabel.textColor = textColor
 				}, completion: { finished in
 					self.subLabel.font = font
 			})
@@ -384,6 +389,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	:param: animated True if the scrolling should be animated, false if it should be immediate.
 	*/
 	public func scrollToItem(item: Int, animated: Bool = false) {
+		self.selectedItem = item
 		switch self.pickerViewStyle {
 		case .Flat:
 			self.collectionView.scrollToItemAtIndexPath(
@@ -420,7 +426,6 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 			scrollPosition: .None)
 		self.scrollToItem(item, animated: animated)
 		self.scaleSubLabel(indexPath)
-		self.selectedItem = item
 		if notifySelection {
 			self.delegate?.pickerView?(self, didSelectItem: item)
 		}
@@ -475,6 +480,8 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 				}
 			}
 		}
+		cell.textColor = self.textColor
+		cell.highlightedTextColor = self.highlightedTextColor
 		cell._selected = (indexPath.item == self.selectedItem)
 		return cell
 	}
