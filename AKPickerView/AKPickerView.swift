@@ -390,7 +390,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
     :param: item     An integer value which indicates the index of cell.
     :param: animated True if the scrolling should be animated, false if it should be immediate.
     */
-    public func scrollToItem(item: Int, animated: Bool = false) {
+    public func scrollToItem(item: Int, animated: Bool = false, notifySelection: Bool = false) {
         self.selectedItem = item
         switch self.pickerViewStyle {
         case .Flat:
@@ -400,6 +400,9 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
                     inSection: 0),
                 atScrollPosition: .CenteredHorizontally,
                 animated: animated)
+        }
+        if notifySelection {
+            self.delegate?.pickerView?(self, didSelectItem: item)
         }
     }
 
@@ -426,11 +429,8 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
             indexPath,
             animated: animated,
             scrollPosition: .None)
-        self.scrollToItem(item, animated: animated)
+        self.scrollToItem(item, animated: animated, notifySelection: notifySelection)
         self.scaleSubLabel(indexPath)
-        if notifySelection {
-            self.delegate?.pickerView?(self, didSelectItem: item)
-        }
     }
 
     // MARK: Delegate Handling
@@ -516,8 +516,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
     // MARK: UICollectionViewDelegate
     public func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
-        self.selectedItem = indexPath.item
-        self.scrollToItem(indexPath.item, animated: true)
+        self.scrollToItem(indexPath.item, animated: true, notifySelection: true)
     }
 
     // MARK: UIScrollViewDelegate
