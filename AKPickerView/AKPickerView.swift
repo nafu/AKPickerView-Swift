@@ -73,6 +73,8 @@ private class AKCollectionViewCell: UICollectionViewCell {
 				self.subLabel.textColor = textColor
 				}, completion: { finished in
 					self.subLabel.font = font
+					self.label.textColor = textColor
+					self.subLabel.textColor = textColor
 			})
 		}
 	}
@@ -528,6 +530,10 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 		if !decelerate {
 			self.didEndScrolling()
 		}
+	}
+
+	public func scrollViewDidEndScrollingAnimation(scrollView: UIScrollView) {
+		self.didEndScrolling()
 	}
 
 	public func scrollViewDidScroll(scrollView: UIScrollView) {
