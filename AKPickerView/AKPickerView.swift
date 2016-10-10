@@ -538,7 +538,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
         let center = self.convertPoint(self.collectionView.center, toView: self.collectionView)
         if let indexPath = self.collectionView.indexPathForItemAtPoint(center) {
-            self.selectedItem = indexPath.item
+            self.collectionView.deselectItemAtIndexPath(indexPath, animated: false)
             self.scaleSubLabel(indexPath)
         }
     }
