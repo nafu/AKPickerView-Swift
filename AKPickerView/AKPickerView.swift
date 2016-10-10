@@ -507,8 +507,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	// MARK: UICollectionViewDelegate
 	public func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
-		didSelectItem = true
-		self.selectItem(indexPath.item, animated: true, notifySelection: true)
+		self.scrollToItem(indexPath.item, animated: true)
 	}
 
 	// MARK: UIScrollViewDelegate
@@ -535,17 +534,12 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	private func scaleSubLabel(indexPath: NSIndexPath) {
 		guard let cell = self.collectionView.cellForItemAtIndexPath(indexPath) as! AKCollectionViewCell? else { return }
-		guard self.selectedItem == indexPath.item else { return }
 		cell._selected = true
 		for cell in self.collectionView.visibleCells() as! [AKCollectionViewCell] {
 			let visibleIndexPath = self.collectionView.indexPathForCell(cell)
 			if indexPath == visibleIndexPath { continue }
 			cell._selected = false
 		}
-	}
-
-	public func scrollViewDidEndScrollingAnimation(scrollView: UIScrollView) {
-		didSelectItem = true
 	}
 
 	// MARK: AKCollectionViewLayoutDelegate
