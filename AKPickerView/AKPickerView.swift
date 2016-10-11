@@ -397,6 +397,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
     :param: animated True if the scrolling should be animated, false if it should be immediate.
     */
     public func scrollToItem(item: Int, animated: Bool = false, notifySelection: Bool = false) {
+        guard self.collectionView.numberOfItemsInSection(0) > item else { return }
         self.selectedItem = item
         switch self.pickerViewStyle {
         case .Flat:
@@ -436,6 +437,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
             animated: animated,
             scrollPosition: .None)
         self.scrollToItem(item, animated: animated, notifySelection: notifySelection)
+        self.collectionView.deselectItemAtIndexPath(indexPath, animated: false)
         self.scaleSubLabel(indexPath)
     }
 
