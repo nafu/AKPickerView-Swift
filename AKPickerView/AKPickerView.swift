@@ -64,18 +64,24 @@ private class AKCollectionViewCell: UICollectionViewCell {
     private var isSelected = false
     var _selected: Bool = false {
         didSet(selected) {
-            let scaleFactor: CGFloat = selected ? 1.375 : 1
-            let font = selected ? self.highlightedSubLabelFont : self.subLabelFont
-            let textColor = selected ? self.highlightedTextColor : self.textColor
-            UIView.animateWithDuration(0.05, animations: {
-                self.subLabel.transform = CGAffineTransformMakeScale(scaleFactor, scaleFactor)
+            let scaleFactor: CGFloat = _selected ? 1.375 : 1
+            let font = _selected ? self.highlightedSubLabelFont : self.subLabelFont
+            let textColor = _selected ? self.highlightedTextColor : self.textColor
+            if selected == _selected {
+                self.subLabel.font = font
                 self.label.textColor = textColor
                 self.subLabel.textColor = textColor
-                }, completion: { finished in
-                    self.subLabel.font = font
+            } else {
+                UIView.animateWithDuration(0.05, animations: {
+                    self.subLabel.transform = CGAffineTransformMakeScale(scaleFactor, scaleFactor)
                     self.label.textColor = textColor
                     self.subLabel.textColor = textColor
-            })
+                    }, completion: { finished in
+                        self.subLabel.font = font
+                        self.label.textColor = textColor
+                        self.subLabel.textColor = textColor
+                })
+            }
         }
     }
 
@@ -259,7 +265,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
     // MARK: Readonly Properties
     /// Readonly. Index of currently selected item.
-    public private(set) var selectedItem: Int = 0
+    public var selectedItem: Int = 0
     /// Readonly. The point at which the origin of the content view is offset from the origin of the picker view.
     public var contentOffset: CGPoint {
         get {
