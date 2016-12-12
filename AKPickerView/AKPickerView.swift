@@ -27,6 +27,7 @@ Protocols to specify the number and type of contents.
 @objc public protocol AKPickerViewDataSource {
 	func numberOfItemsInPickerView(_ pickerView: AKPickerView) -> Int
 	@objc optional func pickerView(_ pickerView: AKPickerView, titleForItem item: Int) -> String
+	@objc optional func pickerView(_ pickerView: AKPickerView, subtitleForItem item: Int) -> String
 	@objc optional func pickerView(_ pickerView: AKPickerView, imageForItem item: Int) -> UIImage
 }
 
@@ -39,6 +40,7 @@ and customize the appearance of labels.
 	@objc optional func pickerView(_ pickerView: AKPickerView, didSelectItem item: Int)
 	@objc optional func pickerView(_ pickerView: AKPickerView, marginForItem item: Int) -> CGSize
 	@objc optional func pickerView(_ pickerView: AKPickerView, configureLabel label: UILabel, forItem item: Int)
+	@objc optional func pickerView(_ pickerView: AKPickerView, configureSubLabel label: UILabel, forItem item: Int)
 }
 
 // MARK: - Private Classes and Protocols
@@ -56,34 +58,67 @@ Private. A subclass of UICollectionViewCell used in AKPickerView's collection vi
 */
 private class AKCollectionViewCell: UICollectionViewCell {
 	var label: UILabel!
+	var subLabel: UILabel!
+	var textColor = UIColor.darkGray
+	var highlightedTextColor = UIColor.black
 	var imageView: UIImageView!
-	var font = UIFont.systemFont(ofSize: UIFont.systemFontSize)
-	var highlightedFont = UIFont.systemFont(ofSize: UIFont.systemFontSize)
+	var labelFont = UIFont.systemFont(ofSize: 13)
+	var subLabelFont = UIFont.systemFont(ofSize: 16)
+	var highlightedSubLabelFont = UIFont.systemFont(ofSize: 22)
 	var _selected: Bool = false {
 		didSet(selected) {
-			let animation = CATransition()
-			animation.type = kCATransitionFade
-			animation.duration = 0.15
-			self.label.layer.add(animation, forKey: "")
-			self.label.font = self.isSelected ? self.highlightedFont : self.font
+			let scaleFactor: CGFloat = self._selected ? 1.375 : 1
+			let font = self._selected ? self.highlightedSubLabelFont : self.subLabelFont
+			let textColor = self._selected ? self.highlightedTextColor : self.textColor
+			if selected == self._selected {
+				self.subLabel.font = font
+				self.label.textColor = textColor
+				self.subLabel.textColor = textColor
+			} else {
+				UIView.animate(withDuration: 0.05, animations: {
+					self.subLabel.transform = CGAffineTransform.init(scaleX: scaleFactor, y: scaleFactor)
+					self.label.textColor = textColor
+					self.subLabel.textColor = textColor
+				}, completion: { finished in
+					self.subLabel.font = font
+					self.label.textColor = textColor
+					self.subLabel.textColor = textColor
+				})
+			}
 		}
 	}
 
 	func initialize() {
+		let labelHeight: CGFloat = self.labelFont.lineHeight
+
 		self.layer.isDoubleSided = false
 		self.layer.shouldRasterize = true
 		self.layer.rasterizationScale = UIScreen.main.scale
 
 		self.label = UILabel(frame: self.contentView.bounds)
+		self.label.frame.size.height = labelHeight
 		self.label.backgroundColor = UIColor.clear
 		self.label.textAlignment = .center
 		self.label.textColor = UIColor.gray
 		self.label.numberOfLines = 1
 		self.label.lineBreakMode = .byTruncatingTail
 		self.label.highlightedTextColor = UIColor.black
-		self.label.font = self.font
+		self.label.font = self.labelFont
 		self.label.autoresizingMask = [.flexibleTopMargin, .flexibleLeftMargin, .flexibleBottomMargin, .flexibleRightMargin]
 		self.contentView.addSubview(self.label)
+
+		self.subLabel = UILabel(frame: self.contentView.bounds)
+		self.subLabel.frame.origin.y = labelHeight
+		self.subLabel.frame.size.height -= labelHeight
+		self.subLabel.backgroundColor = UIColor.clear
+		self.subLabel.textAlignment = .center
+		self.subLabel.textColor = UIColor.gray
+		self.subLabel.numberOfLines = 1
+		self.subLabel.lineBreakMode = .byTruncatingTail
+		self.subLabel.highlightedTextColor = UIColor.black
+		self.subLabel.font = self.subLabelFont
+		self.subLabel.autoresizingMask = [.flexibleTopMargin, .flexibleLeftMargin, .flexibleBottomMargin, .flexibleRightMargin]
+		self.contentView.addSubview(self.subLabel)
 
 		self.imageView = UIImageView(frame: self.contentView.bounds)
 		self.imageView.backgroundColor = UIColor.clear
@@ -238,10 +273,13 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 		}
 	}
 	/// Readwrite. A font which used in NOT selected cells.
-	public lazy var font = UIFont.systemFont(ofSize: 20)
+	public lazy var labelFont = UIFont.systemFont(ofSize: 13)
+
+	/// Readwrite. A font which used in NOT selected cells.
+	public lazy var subLabelFont = UIFont.systemFont(ofSize: 16)
 
 	/// Readwrite. A font which used in selected cells.
-	public lazy var highlightedFont = UIFont.boldSystemFont(ofSize: 20)
+	public lazy var highlightedSubLabelFont = UIFont.boldSystemFont(ofSize: 22)
 
 	/// Readwrite. A color of the text on NOT selected cells.
 	@IBInspectable public lazy var textColor: UIColor = UIColor.darkGray
@@ -252,8 +290,14 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	/// Readwrite. A float value which indicates the spacing between cells.
 	@IBInspectable public var interitemSpacing: CGFloat = 0.0
 
+	// Readwrite. We should fix the cell width
+	@IBInspectable public var shouldFixCellWidth = false
+
+	// Readwrite. A float value which indicates the width each cell.
+	@IBInspectable public var fixedCellWidth: CGFloat = 85
+
 	/// Readwrite. The style of the picker view. See AKPickerViewStyle.
-	public var pickerViewStyle = AKPickerViewStyle.wheel
+	public var pickerViewStyle = AKPickerViewStyle.flat
 
 	/// Readwrite. A float value which determines the perspective representation which used when using AKPickerViewStyle.Wheel style.
 	@IBInspectable public var viewDepth: CGFloat = 1000.0 {
@@ -361,7 +405,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	}
 
 	open override var intrinsicContentSize : CGSize {
-		return CGSize(width: UIViewNoIntrinsicMetric, height: max(self.font.lineHeight, self.highlightedFont.lineHeight))
+		return CGSize(width: UIViewNoIntrinsicMetric, height: self.labelFont.lineHeight + max(self.subLabelFont.lineHeight, self.highlightedSubLabelFont.lineHeight))
 	}
 
 	// MARK: Calculation Functions
@@ -373,11 +417,10 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	:returns: A CGSize which contains given string just.
 	*/
 	fileprivate func sizeForString(_ string: NSString) -> CGSize {
-		let size = string.size(attributes: [NSFontAttributeName: self.font])
-		let highlightedSize = string.size(attributes: [NSFontAttributeName: self.highlightedFont])
+		let size = string.size(attributes: [NSFontAttributeName: self.labelFont])
 		return CGSize(
-			width: ceil(max(size.width, highlightedSize.width)),
-			height: ceil(max(size.height, highlightedSize.height)))
+			width: ceil(size.width),
+			height: ceil(size.height))
 	}
 
 	/**
@@ -431,7 +474,9 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	:param: item     An integer value which indicates the index of cell.
 	:param: animated True if the scrolling should be animated, false if it should be immediate.
 	*/
-	public func scrollToItem(_ item: Int, animated: Bool = false) {
+	public func scrollToItem(_ item: Int, animated: Bool = false, notifySelection: Bool = false) {
+		guard self.collectionView.numberOfItems(inSection: 0) > item else { return }
+		self.selectedItem = item
 		switch self.pickerViewStyle {
 		case .flat:
 			self.collectionView.scrollToItem(
@@ -446,6 +491,9 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 					x: self.offsetForItem(item),
 					y: self.collectionView.contentOffset.y),
 				animated: animated)
+		}
+		if notifySelection {
+			self.delegate?.pickerView?(self, didSelectItem: item)
 		}
 	}
 
@@ -466,16 +514,15 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 	:param: animated        True if the scrolling should be animated, false if it should be immediate.
 	:param: notifySelection True if the delegate method should be called, false if not.
 	*/
-	fileprivate func selectItem(_ item: Int, animated: Bool, notifySelection: Bool) {
+	public func selectItem(_ item: Int, animated: Bool, notifySelection: Bool) {
+		let indexPath = IndexPath(item: item, section: 0)
 		self.collectionView.selectItem(
-			at: IndexPath(item: item, section: 0),
+			at: indexPath,
 			animated: animated,
 			scrollPosition: UICollectionViewScrollPosition())
-		self.scrollToItem(item, animated: animated)
-		self.selectedItem = item
-		if notifySelection {
-			self.delegate?.pickerView?(self, didSelectItem: item)
-		}
+		self.scrollToItem(item, animated: animated, notifySelection: notifySelection)
+		self.collectionView.deselectItem(at: indexPath, animated: false)
+		self.scaleSubLabel(indexPath: indexPath)
 	}
 
 	// MARK: Delegate Handling
@@ -521,9 +568,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 			cell.label.text = title
 			cell.label.textColor = self.textColor
 			cell.label.highlightedTextColor = self.highlightedTextColor
-			cell.label.font = self.font
-			cell.font = self.font
-			cell.highlightedFont = self.highlightedFont
+			cell.label.font = self.labelFont
 			cell.label.bounds = CGRect(origin: CGPoint.zero, size: self.sizeForString(title as NSString))
 			if let delegate = self.delegate {
 				delegate.pickerView?(self, configureLabel: cell.label, forItem: indexPath.item)
@@ -534,12 +579,30 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 		} else if let image = self.dataSource?.pickerView?(self, imageForItem: indexPath.item) {
 			cell.imageView.image = image
 		}
+		if let subtitle = self.dataSource?.pickerView?(self, subtitleForItem: indexPath.item) {
+			cell.subLabel.text = subtitle
+			cell.subLabel.textColor = self.textColor
+			cell.subLabel.highlightedTextColor = self.highlightedTextColor
+			cell.subLabel.font = self.subLabelFont
+			if let delegate = self.delegate {
+				delegate.pickerView?(self, configureSubLabel: cell.subLabel, forItem: indexPath.item)
+				if let margin = delegate.pickerView?(self, marginForItem: indexPath.item) {
+					cell.subLabel.frame = cell.subLabel.frame.insetBy(dx: -margin.width, dy: -margin.height)
+				}
+			}
+		}
+		cell.textColor = self.textColor
+		cell.highlightedTextColor = self.highlightedTextColor
 		cell._selected = (indexPath.item == self.selectedItem)
 		return cell
 	}
 
 	// MARK: UICollectionViewDelegateFlowLayout
 	public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+		if self.shouldFixCellWidth {
+			let size = CGSize(width: self.fixedCellWidth, height: collectionView.bounds.size.height)
+			return size
+		}
 		var size = CGSize(width: self.interitemSpacing, height: collectionView.bounds.size.height)
 		if let title = self.dataSource?.pickerView?(self, titleForItem: indexPath.item) {
 			size.width += self.sizeForString(title as NSString).width
@@ -574,7 +637,7 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 
 	// MARK: UICollectionViewDelegate
 	public func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-		self.selectItem(indexPath.item, animated: true)
+		self.scrollToItem(indexPath.item, animated: true, notifySelection: true)
 	}
 
 	// MARK: UIScrollViewDelegate
@@ -596,6 +659,22 @@ public class AKPickerView: UIView, UICollectionViewDataSource, UICollectionViewD
 		CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
 		self.collectionView.layer.mask?.frame = self.collectionView.bounds
 		CATransaction.commit()
+
+		let center = self.convert(self.collectionView.center, to: self.collectionView)
+		if let indexPath = self.collectionView.indexPathForItem(at: center) {
+			self.collectionView.deselectItem(at: indexPath, animated: false)
+			self.scaleSubLabel(indexPath: indexPath)
+		}
+	}
+
+	private func scaleSubLabel(indexPath: IndexPath) {
+		guard let cell = self.collectionView.cellForItem(at: indexPath) as? AKCollectionViewCell? else { return }
+		cell?._selected = true
+		for cell in self.collectionView.visibleCells as! [AKCollectionViewCell] {
+			let visibleIndexPath = self.collectionView.indexPath(for: cell)
+			if indexPath == visibleIndexPath { continue }
+			cell._selected = false
+		}
 	}
 
 	// MARK: AKCollectionViewLayoutDelegate
